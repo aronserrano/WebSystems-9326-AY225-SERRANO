@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eurogamer Game Scraper</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1> Eurogamer Game Scraper</h1>
+            <p>Real-time scraped game data from Eurogamer.net - Midterm Lab Project</p>
+        </div>
+    </header>
+
+    <main>
+        <!-- Message Container for notifications -->
+        <div id="messageContainer"></div>
+
+        <section class="controls">
+            <div class="scrape-control">
+                <form id="scrapeForm">
+                    <label for="num_games">Number of games to scrape:</label>
+                    <input type="number" id="num_games" name="num_games" min="5" max="20" value="10" required>
+                    <button type="submit" id="scrapeBtn">
+                        <span class="loading-spinner-small" style="display: none;"></span>
+                        🔄 Scrape New Data
+                    </button>
+                </form>
+                <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                    <small>⚠️ Scraping may take 1-2 minutes. Please wait.</small>
+                </p>
+            </div>
+            
+            <div class="filter-control">
+                <input type="text" id="searchInput" placeholder="Search by game title..." autocomplete="off">
+                <select id="platformFilter">
+                    <option value="all"> All Platforms</option>
+                    <option value="pc"> PC</option>
+                    <option value="playstation"> PlayStation</option>
+                    <option value="ps4"> PS4</option>
+                    <option value="ps5"> PS5</option>
+                    <option value="xbox"> Xbox</option>
+                    <option value="xbox series"> Xbox Series</option>
+                    <option value="nintendo"> Nintendo</option>
+                    <option value="switch">🎮Switch</option>
+                </select>
+                <button id="refreshBtn">🔄 Refresh Data</button>
+                <button id="statsBtn">📊 Stats</button>
+                <button id="resetBtn" style="background: #dc3545;">🗑️ Reset All</button>
+            </div>
+        </section>
+
+        <section class="stats">
+            <div class="stat-card">
+                <h3>Total Games</h3>
+                <p id="totalGames">{{ games|length }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Last Updated</h3>
+                <p id="lastUpdated">{{ now().strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+        </section>
+
+        <section class="games-grid" id="gamesContainer">
+            {% if games %}
+                {% for game in games %}
+                <div class="game-card" 
+                     data-title="{{ game['Game Title']|lower }}" 
+                     data-platform="{{ game['Platform Availability']|lower }}">
+                    
+                    <!-- Game Image Section -->
+                    {% if game['Image URL'] and game['Image URL'] != 'Not Available' %}
+                    <div class="game-image-container">
+                        <img src="{{ game['Image URL'] }}" 
+                             alt="{{ game['Game Title'] }}" 
+                             class="game-image"
+                             loading="lazy"
+                             onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
+                    </div>
+                    {% else %}
+                    <div class="game-image-container no-image">
+                        <div class="image-placeholder">🎮</div>
+                    </div>
+                    {% endif %}
+                    
+                    <h3 class="game-title">{{ game.get('Display Title', game['Game Title'])|truncate(50) }}</h3>
+                    
+                    <div class="game-meta">
+                        {% if game['Release Date'] != 'Not Available' %}
+                        <span>📅 {{ game['Release Date'] }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="game-details">
+                        {% if game['Platform Availability'] != 'Not Available' %}
+                        <p><strong>🎮 Platforms:</strong> {{ game['Platform Availability']|truncate(30) }}</p>
+                        {% endif %}
+                        
+                        {% if game['Developer Information'] != 'Not Available' %}
+                        <p><strong>👨‍💻 Developer:</strong> 
+                            <span class="developer-badge">{{ game['Developer Information'] }}</span>
+                        </p>
+                        {% endif %}
+                        
+                        {% if game['Publisher Information'] != 'Not Available' %}
+                        <p><strong>🏢 Publisher:</strong> 
+                            <span class="publisher-badge">{{ game['Publisher Information'] }}</span>
+                        </p>
+                        {% endif %}
+                        
+                        {% if game['Key Features'] != 'Not Available' %}
+                        <p class="features"><strong>⭐ Description:</strong> {{ game['Key Features']|truncate(120) }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="game-footer">
+                        <small class="scraped-date">🕒 {{ game['Date Scraped'][:10] }}</small>
+                        <a href="{{ game['URL'] }}" target="_blank" class="game-link">Read Full Review →</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-games">
+                    <p>📭 No games data available. Click "Scrape New Data" to start scraping!</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Stats Modal -->
+        <div id="statsModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>📊 Game Statistics</h2>
+                <div id="statsContent"></div>
+                <button onclick="closeStats()" class="close-btn">Close</button>
+            </div>
+        </div>
+        <div id="modalOverlay" class="modal-overlay" style="display: none;" onclick="closeStats()"></div>
+    </main>
+
+    <footer>
+        <p>© 2026 Eurogamer Game Scraper - Midterm Lab Project</p>
+        <p>Data scraped in real-time from <a href="https://www.eurogamer.net" target="_blank">Eurogamer.net</a></p>
+        <p class="image-attribution"> Images are property of their respective owners, sourced from Eurogamer.net</p>
+        <p>Created by: Aron Marcus Serrano | All data is dynamically scraped - No hardcoded content</p>
+    </footer>
+
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Scraping games in real-time... Please wait...</p>
+        <p style="font-size: 0.9rem; color: #666;">This may take 1-2 minutes</p>
+    </div>
+
+    <script>
+        // ==================== UTILITY FUNCTIONS ====================
+
+        // Show message function
+        function showMessage(message, isSuccess = true) {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isSuccess ? 'success-message' : 'error-message';
+            messageDiv.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return String(unsafe)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Update games display with filtered data
+        function updateGamesDisplay(games) {
+            const container = document.getElementById('gamesContainer');
+            
+            if (games.length === 0) {
+                container.innerHTML = '<div class="no-games"><p>📭 No games match your filters.</p></div>';
+                return;
+            }
+            
+            let html = '';
+            games.forEach(game => {
+                const title = game['Display Title'] || game['Game Title'] || 'Unknown';
+                const releaseDate = game['Release Date'] || 'Not Available';
+                const platforms = game['Platform Availability'] || 'Not Available';
+                const developer = game['Developer Information'] || 'Not Available';
+                const publisher = game['Publisher Information'] || 'Not Available';
+                const features = game['Key Features'] || 'Not Available';
+                const imageUrl = game['Image URL'] || '';
+                const url = game['URL'] || '#';
+                const dateScraped = game['Date Scraped'] || '';
+                
+                html += `
+                <div class="game-card">
+                    ${imageUrl && imageUrl !== 'Not Available' ? 
+                        `<div class="game-image-container">
+                            <img src="${escapeHtml(imageUrl)}" 
+                                 alt="${escapeHtml(title)}" 
+                                 class="game-image"
+                                 loading="lazy"
+                                 onerror="this.style.display='none'; this.parentElement.classList.add('no-image');">
+                        </div>` : 
+                        `<div class="game-image-container no-image">
+                            <div class="image-placeholder">🎮</div>
+                        </div>`
+                    }
+                    
+                    <h3 class="game-title">${escapeHtml(title)}</h3>
+                    
+                    <div class="game-meta">
+                        ${releaseDate !== 'Not Available' ? `<span>📅 ${escapeHtml(releaseDate)}</span>` : ''}
+                    </div>
+                    
+                    <div class="game-details">
+                        ${platforms !== 'Not Available' ? 
+                            `<p><strong>🎮 Platforms:</strong> ${escapeHtml(platforms.substring(0, 30))}</p>` : ''}
+                        
+                        ${developer !== 'Not Available' ? 
+                            `<p><strong>👨‍💻 Developer:</strong> <span class="developer-badge">${escapeHtml(developer)}</span></p>` : ''}
+                        
+                        ${publisher !== 'Not Available' ? 
+                            `<p><strong>🏢 Publisher:</strong> <span class="publisher-badge">${escapeHtml(publisher)}</span></p>` : ''}
+                        
+                        ${features !== 'Not Available' ? 
+                            `<p class="features"><strong>⭐ Description:</strong> ${escapeHtml(features.substring(0, 120))}...</p>` : ''}
+                    </div>
+                    
+                    <div class="game-footer">
+                        ${dateScraped ? `<small class="scraped-date">🕒 ${dateScraped.substring(0, 10)}</small>` : ''}
+                        ${url !== '#' ? `<a href="${escapeHtml(url)}" target="_blank" class="game-link">Read Full Review →</a>` : ''}
+                    </div>
+                </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // ==================== STATS FUNCTIONS ====================
+
+        // Show statistics modal
+        async function showStats() {
+            try {
+                const response = await fetch('/stats');
+                const stats = await response.json();
+                
+                let statsHtml = `
+                    <div class="stat-item">
+                        <strong>Total Games:</strong> ${stats.total_games}
+                    </div>
+                    <div class="stat-item">
+                        <strong>Games with Images:</strong> ${stats.images_found || 0}
+                    </div>
+                `;
+                
+                if (stats.platforms && Object.keys(stats.platforms).length > 0) {
+                    statsHtml += '<h3 style="margin-top: 1rem;">Top Platforms</h3>';
+                    Object.entries(stats.platforms).forEach(([platform, count]) => {
+                        statsHtml += `<div class="stat-item">${escapeHtml(platform)}: ${count} games</div>`;
+                    });
+                } else {
+                    statsHtml += '<p style="color: #999; margin-top: 1rem;">No platform data available</p>';
+                }
+                
+                if (stats.developers && Object.keys(stats.developers).length > 0) {
+                    statsHtml += '<h3 style="margin-top: 1rem;">Top Developers</h3>';
+                    Object.entries(stats.developers).forEach(([dev, count]) => {
+                        statsHtml += `<div class="stat-item">${escapeHtml(dev)}: ${count} games</div>`;
+                    });
+                }
+                
+                // Add reset button to stats modal
+                statsHtml += `
+                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                        <button onclick="resetData()" style="background: #dc3545; width: 100%;">
+                            🗑️ Reset All Data
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('statsContent').innerHTML = statsHtml;
+                document.getElementById('statsModal').style.display = 'block';
+                document.getElementById('modalOverlay').style.display = 'block';
+            } catch (error) {
+                showMessage('❌ Error loading stats: ' + error.message, false);
+            }
+        }
+
+        // Close stats modal
+        function closeStats() {
+            document.getElementById('statsModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        // ==================== RESET FUNCTION ====================
+
+        // Reset all data (delete files and clear memory)
+        async function resetData() {
+            if (!confirm('⚠️ This will delete ALL current game data permanently. Are you sure?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('✅ ' + data.message, true);
+                    
+                    // Update UI to show 0 games
+                    document.getElementById('totalGames').textContent = '0';
+                    document.getElementById('gamesContainer').innerHTML = 
+                        '<div class="no-games"><p>📭 No games data available. Click "Scrape New Data" to start scraping!</p></div>';
+                    
+                    // Close stats modal if open
+                    closeStats();
+                } else {
+                    showMessage('❌ ' + data.message, false);
+                }
+            } catch (error) {
+                showMessage('❌ Error resetting data: ' + error.message, false);
+            }
+        }
+
+        // ==================== SCRAPE FUNCTION ====================
+
+        // Handle scrape form submission
+        document.getElementById('scrapeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const numGames = document.getElementById('num_games').value;
+            const scrapeBtn = document.getElementById('scrapeBtn');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const spinner = scrapeBtn.querySelector('.loading-spinner-small');
+            
+            // Show loading
+            scrapeBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            loadingOverlay.style.display = 'flex';
+            
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ num_games: parseInt(numGames) })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`✅ ${data.message}`, true);
+                    // Automatically refresh the page to show new stats and games
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage('❌ Error: ' + data.message, false);
+                }
+            } catch (error) {
+                showMessage('❌ Error scraping data: ' + error.message, false);
+            } finally {
+                scrapeBtn.disabled = false;
+                spinner.style.display = 'none';
+                loadingOverlay.style.display = 'none';
+            }
+        });
+
+        // ==================== FILTER FUNCTIONS ====================
+
+        // Search and filter functionality with debounce
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterGames, 300);
+        });
+        
+        document.getElementById('platformFilter').addEventListener('change', filterGames);
+
+        async function filterGames() {
+            const searchTerm = document.getElementById('searchInput').value;
+            const platform = document.getElementById('platformFilter').value;
+            
+            try {
+                const response = await fetch(`/filter?search=${encodeURIComponent(searchTerm)}&platform=${encodeURIComponent(platform)}`);
+                const filteredGames = await response.json();
+                
+                updateGamesDisplay(filteredGames);
+                document.getElementById('totalGames').textContent = filteredGames.length;
+            } catch (error) {
+                console.error('Error filtering games:', error);
+                showMessage('❌ Error filtering games', false);
+            }
+        }
+
+        // ==================== REFRESH FUNCTION ====================
+
+        // Refresh button - reload from CSV
+        document.getElementById('refreshBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/refresh', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`✅ Refreshed ${data.count} games from storage`, true);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage('❌ No data to refresh', false);
+                }
+            } catch (error) {
+                showMessage('❌ Error refreshing data: ' + error.message, false);
+            }
+        });
+
+        // ==================== STATS BUTTON ====================
+
+        // Stats button
+        document.getElementById('statsBtn').addEventListener('click', showStats);
+
+        // ==================== RESET BUTTON ====================
+
+        // Reset button
+        document.getElementById('resetBtn').addEventListener('click', resetData);
+
+        // ==================== INITIALIZATION ====================
+
+        // Auto-refresh total on page load
+        window.addEventListener('load', () => {
+            document.getElementById('totalGames').textContent = '{{ games|length }}';
+        });
+
+        // Keyboard shortcut for search (Ctrl+F)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeStats();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dll
+*.exe
+*.dylib
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*.log
+*.pot
+*.pyc
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+.env
+.flaskenv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Data files - keep CSV/JSON but don't commit if empty
+games_data.csv
+games_data.json
+*.csv
+*.json
+
+# Images - we're hotlinking, not storing
+static/game_images/
