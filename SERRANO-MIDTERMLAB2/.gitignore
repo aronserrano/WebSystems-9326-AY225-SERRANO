@@ -20,11 +20,10 @@ dist/
 build/
 *.egg
 
-# Flask
-instance/
-.webassets-cache
-.env
-.flaskenv
+# Data files
+data/*.json
+data/generated_pdfs/*.pdf
+!data/.gitkeep
 
 # IDE
 .vscode/
@@ -33,13 +32,3 @@ instance/
 *.swo
 *~
 .DS_Store
-
-# Data files - keep directory structure but ignore generated files
-data/*.json
-data/generated_pdfs/*.pdf
-!data/.gitkeep
-
-# OS generated files
-Thumbs.db
-ehthumbs.db
-Desktop.ini

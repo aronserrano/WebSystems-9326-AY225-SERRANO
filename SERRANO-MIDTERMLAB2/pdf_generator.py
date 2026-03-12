@@ -4,11 +4,12 @@ Creates learning materials from scraped data
 """
 
 import os
+import html
 from datetime import datetime
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
+from reportlab.lib.units import inch  # This defines 'inch'
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
 from config import Config
@@ -21,12 +22,13 @@ class PDFGenerator:
         self.styles = getSampleStyleSheet()
         self._setup_styles()
         self.output_dir = Config.PDF_OUTPUT_DIR
-        self.student_name = Config.STUDENT_NAME
+        self.student_name = Config.STUDENT_NAME  # Fixed: was 'STUDENT_MAKE'
         self.subject = Config.SUBJECT_CATEGORY
         os.makedirs(self.output_dir, exist_ok=True)
     
     def _setup_styles(self):
-        """Set up PDF styles"""
+        """Set up PDF styles with unique names"""
+        
         self.styles.add(ParagraphStyle(
             name='CustomTitle',
             parent=self.styles['Heading1'],
@@ -37,7 +39,7 @@ class PDFGenerator:
         ))
         
         self.styles.add(ParagraphStyle(
-            name='SectionHeading',
+            name='CustomSection',
             parent=self.styles['Heading2'],
             fontSize=16,
             textColor=colors.HexColor('#117A65'),
@@ -46,16 +48,7 @@ class PDFGenerator:
         ))
         
         self.styles.add(ParagraphStyle(
-            name='BodyText',
-            parent=self.styles['Normal'],
-            fontSize=11,
-            alignment=TA_JUSTIFY,
-            spaceBefore=5,
-            spaceAfter=5
-        ))
-        
-        self.styles.add(ParagraphStyle(
-            name='CodeStyle',
+            name='CustomCode',
             parent=self.styles['Normal'],
             fontSize=9,
             fontName='Courier',
@@ -71,6 +64,13 @@ class PDFGenerator:
             'hard': colors.HexColor('#E74C3C')
         }
         return colors_map.get(difficulty.lower(), colors.HexColor('#95A5A6'))
+    
+    def _escape_html(self, text):
+        """Escape HTML special characters to prevent parsing errors"""
+        if not text or text == "Not Available":
+            return text
+        # Convert to string and escape HTML
+        return html.escape(str(text))
     
     def generate_pdf(self, articles, filename=None):
         """Generate PDF from articles"""
@@ -95,15 +95,16 @@ class PDFGenerator:
         story.append(PageBreak())
         
         # Table of contents
-        story.append(Paragraph("Table of Contents", self.styles['SectionHeading']))
+        story.append(Paragraph("Table of Contents", self.styles['CustomSection']))
         for i, article in enumerate(articles, 1):
-            story.append(Paragraph(f"{i}. {article.get('title', 'Untitled')}", self.styles['BodyText']))
+            title = self._escape_html(article.get('title', 'Untitled'))
+            story.append(Paragraph(f"{i}. {title}", self.styles['Normal']))
         story.append(PageBreak())
         
         # Articles
         for i, article in enumerate(articles, 1):
-            # Title with difficulty badge
-            title_text = f"{i}. {article.get('title', 'Untitled')}"
+            # Title
+            title_text = f"{i}. {self._escape_html(article.get('title', 'Untitled'))}"
             story.append(Paragraph(title_text, self.styles['CustomTitle']))
             
             # Difficulty badge
@@ -121,27 +122,34 @@ class PDFGenerator:
             story.append(Spacer(1, 0.2*inch))
             
             # Key Concepts
-            story.append(Paragraph("Key Concepts", self.styles['SectionHeading']))
-            story.append(Paragraph(article.get('concepts', 'Not Available'), self.styles['BodyText']))
+            story.append(Paragraph("Key Concepts", self.styles['CustomSection']))
+            concepts = self._escape_html(article.get('concepts', 'Not Available'))
+            story.append(Paragraph(concepts, self.styles['Normal']))
             story.append(Spacer(1, 0.1*inch))
             
             # Code Snippets
             snippets = article.get('code_snippets', 'Not Available')
             if snippets != "Not Available" and snippets:
-                story.append(Paragraph("Code Examples", self.styles['SectionHeading']))
+                story.append(Paragraph("Code Examples", self.styles['CustomSection']))
                 for j, snippet in enumerate(snippets, 1):
-                    story.append(Paragraph(f"Example {j} ({snippet['language'].upper()}):", 
-                                          self.styles['BodyText']))
-                    story.append(Paragraph(snippet['code'], self.styles['CodeStyle']))
+                    lang = snippet.get('language', 'text').upper()
+                    story.append(Paragraph(f"Example {j} ({lang}):", self.styles['Normal']))
+                    
+                    # Escape the code to prevent HTML parsing errors
+                    code_text = self._escape_html(snippet.get('code', ''))
+                    story.append(Paragraph(code_text, self.styles['CustomCode']))
                     story.append(Spacer(1, 0.1*inch))
             
             # Complexity Analysis
             complexity = article.get('complexity', {})
             if complexity.get('time') != "Not Available" or complexity.get('space') != "Not Available":
-                story.append(Paragraph("Complexity Analysis", self.styles['SectionHeading']))
+                story.append(Paragraph("Complexity Analysis", self.styles['CustomSection']))
                 data = [
                     ["Time Complexity", "Space Complexity"],
-                    [complexity.get('time', 'N/A'), complexity.get('space', 'N/A')]
+                    [
+                        self._escape_html(complexity.get('time', 'N/A')),
+                        self._escape_html(complexity.get('space', 'N/A'))
+                    ]
                 ]
                 table = Table(data, colWidths=[3*inch, 3*inch])
                 table.setStyle(TableStyle([
@@ -156,9 +164,10 @@ class PDFGenerator:
             # References
             refs = article.get('references', 'Not Available')
             if refs != "Not Available" and refs:
-                story.append(Paragraph("References", self.styles['SectionHeading']))
+                story.append(Paragraph("References", self.styles['CustomSection']))
                 for ref in refs[:3]:
-                    story.append(Paragraph(f"• {ref.get('title', 'Link')}", self.styles['BodyText']))
+                    ref_title = self._escape_html(ref.get('title', 'Link'))
+                    story.append(Paragraph(f"• {ref_title}", self.styles['Normal']))
             
             if i < len(articles):
                 story.append(PageBreak())

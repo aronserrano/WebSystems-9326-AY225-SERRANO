@@ -53,14 +53,12 @@ class GeeksforGeeksScraper:
             element = soup.select_one(selector)
             if element:
                 title = self._clean_text(element.text)
-                # Clean up title
                 title = re.sub(r'\s*[|-]\s*GeeksforGeeks.*$', '', title, flags=re.IGNORECASE)
                 return title
         return "Not Available"
     
     def _extract_difficulty(self, soup):
         """Extract difficulty level"""
-        # Look for difficulty indicators
         text = soup.get_text().lower()[:2000]
         
         for level, keywords in Config.DIFFICULTY_KEYWORDS.items():
@@ -71,7 +69,6 @@ class GeeksforGeeksScraper:
     
     def _extract_key_concepts(self, soup):
         """Extract key concepts"""
-        # Get introduction paragraph
         paragraphs = soup.find_all('p')
         for p in paragraphs[:3]:
             text = self._clean_text(p.get_text())
@@ -87,7 +84,6 @@ class GeeksforGeeksScraper:
         for code in code_blocks[:3]:
             code_text = code.get_text(strip=True)
             if code_text and len(code_text) > 10:
-                # Detect language
                 language = "css"
                 if 'class' in code.attrs:
                     classes = ' '.join(code['class']).lower()
@@ -112,12 +108,10 @@ class GeeksforGeeksScraper:
         
         text = soup.get_text().lower()
         
-        # Look for time complexity
         time_match = re.search(r'time complexity[:\s]+([^.!?]+)', text)
         if time_match:
             complexity['time'] = self._clean_text(time_match.group(1))
         
-        # Look for space complexity
         space_match = re.search(r'space complexity[:\s]+([^.!?]+)', text)
         if space_match:
             complexity['space'] = self._clean_text(space_match.group(1))
@@ -128,7 +122,6 @@ class GeeksforGeeksScraper:
         """Extract references"""
         references = []
         
-        # Look for links in the article
         links = soup.find_all('a', href=True)
         for link in links[:5]:
             href = link['href']
@@ -152,7 +145,7 @@ class GeeksforGeeksScraper:
             if response.status_code != 200:
                 return None
             
-            soup = BeautifulSoup(response.content, 'lxml')
+            soup = BeautifulSoup(response.content, 'html.parser')
             
             article_data = {
                 'title': self._extract_title(soup),

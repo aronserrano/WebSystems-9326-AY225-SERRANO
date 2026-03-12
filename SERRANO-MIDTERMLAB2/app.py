@@ -22,9 +22,10 @@ def index():
     """Home page"""
     global articles_data
     articles_data = scraper.load_data()
+    current_date = datetime.now().strftime('%Y-%m-%d %H:%M')
     return render_template('index.html', 
                          articles=articles_data,
-                         now=datetime.now(),
+                         current_date=current_date,
                          pdfs=pdf_gen.get_pdf_list())
 
 
@@ -110,12 +111,15 @@ def filter_articles():
 def get_stats():
     """Get statistics"""
     if not articles_data:
-        return jsonify({'total': 0})
+        return jsonify({'total': 0, 'difficulties': {}, 'pdfs': 0})
     
     difficulties = {'Easy': 0, 'Medium': 0, 'Hard': 0, 'Not Available': 0}
     for a in articles_data:
         d = a.get('difficulty', 'Not Available')
-        difficulties[d] = difficulties.get(d, 0) + 1
+        if d in difficulties:
+            difficulties[d] += 1
+        else:
+            difficulties['Not Available'] += 1
     
     return jsonify({
         'total': len(articles_data),

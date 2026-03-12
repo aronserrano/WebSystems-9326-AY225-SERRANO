@@ -12,7 +12,6 @@ body {
     color: #333;
 }
 
-/* Header */
 header {
     background: white;
     padding: 2rem;
@@ -25,14 +24,12 @@ header h1 {
     margin-bottom: 0.5rem;
 }
 
-/* Main content */
 main {
     max-width: 1200px;
     margin: 2rem auto;
     padding: 0 1rem;
 }
 
-/* Cards */
 .card {
     background: white;
     border-radius: 8px;
@@ -41,12 +38,12 @@ main {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Controls */
 .control-group {
     display: flex;
     gap: 1rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 input, select, button {
@@ -77,7 +74,6 @@ button.danger {
     background: #dc3545;
 }
 
-/* Stats */
 .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -105,7 +101,6 @@ button.danger {
     color: #1e3c72;
 }
 
-/* Grid */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -138,6 +133,7 @@ button.danger {
     color: #1e3c72;
     flex: 1;
     margin-right: 1rem;
+    font-size: 1.1rem;
 }
 
 .badge {
@@ -160,6 +156,7 @@ button.danger {
 .card-body p {
     margin-bottom: 0.5rem;
     color: #555;
+    font-size: 0.9rem;
 }
 
 .code-badge {
@@ -191,8 +188,7 @@ button.danger {
     text-decoration: underline;
 }
 
-/* Messages */
-#message {
+.message {
     padding: 1rem;
     margin-bottom: 1rem;
     border-radius: 4px;
@@ -210,7 +206,6 @@ button.danger {
     border: 1px solid #f5c6cb;
 }
 
-/* Loading */
 .loading {
     position: fixed;
     top: 0;
@@ -240,7 +235,6 @@ button.danger {
     100% { transform: rotate(360deg); }
 }
 
-/* No data */
 .no-data {
     grid-column: 1 / -1;
     text-align: center;
@@ -250,7 +244,6 @@ button.danger {
     color: #666;
 }
 
-/* Footer */
 footer {
     background: #333;
     color: white;
@@ -259,15 +252,10 @@ footer {
     margin-top: 2rem;
 }
 
-footer a {
-    color: #3498db;
-    text-decoration: none;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
     .control-group {
         flex-direction: column;
+        align-items: stretch;
     }
     
     .grid {

@@ -50,5 +50,5 @@ class Config:
     
     # PDF settings
     PDF_OUTPUT_DIR = "data/generated_pdfs"
-    STUDENT_NAME = "Arron Serrano"
+    STUDENT_NAME = "Aron Serrano"
     SUBJECT_CATEGORY = "Web Development - CSS"
